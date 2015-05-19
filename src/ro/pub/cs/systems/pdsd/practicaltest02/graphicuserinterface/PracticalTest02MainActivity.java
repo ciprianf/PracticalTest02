@@ -1,5 +1,7 @@
 package ro.pub.cs.systems.pdsd.practicaltest02.graphicuserinterface;
 
+import java.net.ServerSocket;
+
 import ro.pub.cs.systems.pdsd.practicaltest02.R;
 import ro.pub.cs.systems.pdsd.practicaltest02.general.Constants;
 import ro.pub.cs.systems.pdsd.practicaltest02.networkingthreads.ClientThread;
@@ -18,88 +20,33 @@ import android.widget.Toast;
 
 public class PracticalTest02MainActivity extends Activity {
 	
-	// Server widgets
-	private EditText     serverPortEditText       = null;
-	private Button       connectButton            = null;
+	private EditText op1EditText, op2EditText;
+	private EditText addEditText, mulEditText, portEditText;
+	private Button plusButton, mulButton;
 	
-	// Client widgets
-	private EditText     clientAddressEditText    = null;
-	private EditText     clientPortEditText       = null;
-	private EditText     cityEditText             = null;
-	private Spinner      informationTypeSpinner   = null;
-	private Button       getWeatherForecastButton = null;
-	private TextView     weatherForecastTextView  = null;
+	//private ServerSocket serverSocket;
+	private ServerThread serverThread;
 	
-	private ServerThread serverThread             = null;
-	private ClientThread clientThread             = null;
+	private int server_port;
 	
-	private ConnectButtonClickListener connectButtonClickListener = new ConnectButtonClickListener();
-	private class ConnectButtonClickListener implements Button.OnClickListener {
+	private OpButtonListener opButtonListener = new OpButtonListener();
+	private class OpButtonListener implements Button.OnClickListener {
 		
 		@Override
 		public void onClick(View view) {
-			String serverPort = serverPortEditText.getText().toString();
-			if (serverPort == null || serverPort.isEmpty()) {
-				Toast.makeText(
-					getApplicationContext(),
-					"Server port should be filled!",
-					Toast.LENGTH_SHORT
-				).show();
-				return;
-			}
-			
-			serverThread = new ServerThread(Integer.parseInt(serverPort));
-			if (serverThread.getServerSocket() != null) {
-				serverThread.start();
+			String query;
+			TextView answer_view;
+			if (view == plusButton) {
+				query = "add,";
+				answer_view = addEditText;
 			} else {
-				Log.e(Constants.TAG, "[MAIN ACTIVITY] Could not creat server thread!");
+				query = "mul,";
+				answer_view = mulEditText;
 			}
+			answer_view.setText("");
+			query += op1EditText.getText().toString() + "," + op2EditText.getText().toString();
 			
-		}
-	}
-	
-	private GetWeatherForecastButtonClickListener getWeatherForecastButtonClickListener = new GetWeatherForecastButtonClickListener();
-	private class GetWeatherForecastButtonClickListener implements Button.OnClickListener {
-		
-		@Override
-		public void onClick(View view) {
-			String clientAddress = clientAddressEditText.getText().toString();
-			String clientPort    = clientPortEditText.getText().toString();
-			if (clientAddress == null || clientAddress.isEmpty() ||
-				clientPort == null || clientPort.isEmpty()) {
-				Toast.makeText(
-					getApplicationContext(),
-					"Client connection parameters should be filled!",
-					Toast.LENGTH_SHORT
-				).show();
-				return;
-			}
-			
-			if (serverThread == null || !serverThread.isAlive()) {
-				Log.e(Constants.TAG, "[MAIN ACTIVITY] There is no server to connect to!");
-				return;
-			}
-			
-			String city = cityEditText.getText().toString();
-			String informationType = informationTypeSpinner.getSelectedItem().toString();
-			if (city == null || city.isEmpty() ||
-				informationType == null || informationType.isEmpty()) {
-				Toast.makeText(
-					getApplicationContext(),
-					"Parameters from client (city / information type) should be filled!",
-					Toast.LENGTH_SHORT
-				).show();
-				return;
-			}
-			
-			weatherForecastTextView.setText(Constants.EMPTY_STRING);
-			
-			clientThread = new ClientThread(
-					clientAddress,
-					Integer.parseInt(clientPort),
-					city,
-					informationType,
-					weatherForecastTextView);
+			ClientThread clientThread = new ClientThread("localhost", server_port, query, answer_view);
 			clientThread.start();
 		}
 	}
@@ -109,17 +56,30 @@ public class PracticalTest02MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_practical_test02_main);
 		
-		serverPortEditText = (EditText)findViewById(R.id.server_port_edit_text);
-		connectButton = (Button)findViewById(R.id.connect_button);
-		connectButton.setOnClickListener(connectButtonClickListener);
+		op1EditText = (EditText) findViewById(R.id.op1editText);
+		op2EditText = (EditText) findViewById(R.id.op2editText);
 		
-		clientAddressEditText = (EditText)findViewById(R.id.client_address_edit_text);
-		clientPortEditText = (EditText)findViewById(R.id.client_port_edit_text);
-		cityEditText = (EditText)findViewById(R.id.city_edit_text);
-		informationTypeSpinner = (Spinner)findViewById(R.id.information_type_spinner);
-		getWeatherForecastButton = (Button)findViewById(R.id.get_weather_forecast_button);
-		getWeatherForecastButton.setOnClickListener(getWeatherForecastButtonClickListener);
-		weatherForecastTextView = (TextView)findViewById(R.id.weather_forecast_text_view);
+		addEditText = (EditText) findViewById(R.id.plusEditText);
+		mulEditText = (EditText) findViewById(R.id.mulEditText);
+		
+		portEditText = (EditText) findViewById(R.id.portEditText);
+		
+		plusButton = (Button) findViewById(R.id.plusButton);
+		mulButton = (Button) findViewById(R.id.mulButton);
+		
+		plusButton.setOnClickListener(opButtonListener);
+		mulButton.setOnClickListener(opButtonListener);
+		
+		serverThread = new ServerThread(0);
+		if (serverThread.getServerSocket() != null) {
+			serverThread.start();
+			server_port = serverThread.getServerSocket().getLocalPort();
+			portEditText.setText(server_port + "");
+			
+		} else {
+			Log.e(Constants.TAG, "[MAIN ACTIVITY] Could not creat server thread!");
+		}
+		
 	}
 	
 	@Override

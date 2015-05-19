@@ -14,23 +14,20 @@ public class ClientThread extends Thread {
 	
 	private String   address;
 	private int      port;
-	private String   city;
-	private String   informationType;
-	private TextView weatherForecastTextView;
+	private String   query;
+	private TextView textView;
 	
 	private Socket   socket;
 	
 	public ClientThread(
 			String address,
 			int port,
-			String city,
-			String informationType,
-			TextView weatherForecastTextView) {
+			String query,
+			TextView textView) {
 		this.address                 = address;
 		this.port                    = port;
-		this.city                    = city;
-		this.informationType         = informationType;
-		this.weatherForecastTextView = weatherForecastTextView;
+		this.query         = query;
+		this.textView = textView;
 	}
 	
 	@Override
@@ -44,17 +41,17 @@ public class ClientThread extends Thread {
 			BufferedReader bufferedReader = Utilities.getReader(socket);
 			PrintWriter    printWriter    = Utilities.getWriter(socket);
 			if (bufferedReader != null && printWriter != null) {
-				printWriter.println(city);
+				// Send info
+				printWriter.println(query);
 				printWriter.flush();
-				printWriter.println(informationType);
-				printWriter.flush();
-				String weatherInformation;
-				while ((weatherInformation = bufferedReader.readLine()) != null) {
-					final String finalizedWeatherInformation = weatherInformation;
-					weatherForecastTextView.post(new Runnable() {
+				// Receive info
+				String result;
+				while ((result = bufferedReader.readLine()) != null) {
+					final String finalizedResult = result;
+					textView.post(new Runnable() {
 						@Override
 						public void run() {
-							weatherForecastTextView.append(finalizedWeatherInformation + "\n");
+							textView.append(finalizedResult + "\n");
 						}
 					});
 				}
